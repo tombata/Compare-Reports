@@ -1,1 +1,456 @@
-'Author: Anton Petrov'Name: MS_UL_Abgleich'Version: 1.6Option ExplicitSub SelctFile()Dim intChoice As IntegerDim strPath As StringDim strPath2 As StringDim intChoice2 As IntegerDim i As Integer'allow the user to select multiple filesApplication.FileDialog(msoFileDialogOpen).AllowMultiSelect = True'make the file dialog visible to the userintChoice = Application.FileDialog(msoFileDialogOpen).Show'determine what choice the user madeIf intChoice <> 0 Then    'get the file path selected by the user    For i = 1 To Application.FileDialog(msoFileDialogOpen _        ).SelectedItems.Count        strPath = Application.FileDialog(msoFileDialogOpen _        ).SelectedItems(i)        'print the file path to sheet 1        Cells(i + 1, 2) = strPath            Next iEnd IfApplication.Wait (Now + TimeValue("0:00:01"))'allow the user to select multiple filesApplication.FileDialog(msoFileDialogOpen).AllowMultiSelect = True'make the file dialog visible to the userintChoice2 = Application.FileDialog(msoFileDialogOpen).Show'determine what choice the user madeIf intChoice2 <> 0 Then    'get the file path selected by the user    For i = 1 To Application.FileDialog(msoFileDialogOpen _        ).SelectedItems.Count        strPath2 = Application.FileDialog(msoFileDialogOpen _        ).SelectedItems(i)        'print the file path to sheet 1        Cells(i + 2, 2) = strPath2            Next iEnd IfEnd SubSub CopyReports()'variable definitionDim wkb1 As WorkbookDim sht1 As WorksheetDim wkb2 As WorkbookDim sht2 As WorksheetDim wkb3 As WorkbookDim sht3 As WorksheetDim sht4 As WorksheetDim MSReport As StringDim ULReport As String'the addresses of the reports are taken from the cells from the previous macroMSReport = Worksheets("Sheet1").Range("B2").ValueULReport = Worksheets("Sheet1").Range("B3").ValueApplication.ScreenUpdating = False'opens the chosen reports and copies the needed sheets, then closes the not needed excel workbooksSet wkb1 = ThisWorkbookSet wkb2 = Workbooks.Open(MSReport)Set sht1 = wkb1.Sheets("Sheet2")Set sht2 = wkb2.Sheets(1)Set wkb3 = Workbooks.Open(ULReport)Set sht3 = wkb3.Sheets(1)Set sht4 = wkb1.Sheets("Sheet3")sht2.Cells.Copysht1.Range("A1").PasteSpecial xlPasteValuessht3.Cells.Copysht4.Range("A1").PasteSpecial xlPasteValuesApplication.CutCopyMode = Falsewkb2.Close Truewkb3.Close TrueWorksheets("Sheet1").ActivateApplication.ScreenUpdating = TrueEnd SubSub newLine()If Not WorksheetFunction.CountA(Worksheets("Sheet2").Range("A1:F1")) = 0 Then     Worksheets("Sheet2").Range("A1").EntireRow.InsertEnd If If Not WorksheetFunction.CountA(Worksheets("Sheet3").Range("A1:F1")) = 0 Then     Worksheets("Sheet3").Range("A1").EntireRow.InsertEnd If End SubSub ISIN()Dim intBB As IntegerDim rngBB As RangeDim controlBB As IntegerintBB = 1Do While Worksheets("Sheet2").Cells(2, intBB) <> ""        If Worksheets("Sheet2").Cells(2, intBB).Value = "BbCode" Then            With Worksheets("Sheet2")                Set rngBB = .Range(.Cells(2, intBB), .Cells(2, intBB))                controlBB = intBB             End With         Exit Do                 End If          intBB = intBB + 1    Loop'pulls the ISIN from BloombergWorksheets("Sheet2").Range("W2") = "MS Isin"Worksheets("Sheet2").Range("W3:W2500").FormulaR1C1 = _"=IF(RC" & controlBB & "="""","""",BDP(RC" & controlBB & "&"" Equity"",""ID_ISIN""))"End SubSub CompareMStoUL()Application.ScreenUpdating = FalseDim stNow   As DatestNow = NowDim intCounter As IntegerDim intCounter2 As IntegerDim rngExchange As RangeDim rngExchange2 As RangeDim control As IntegerDim control2 As Integer    intCounter = 1    intCounter2 = 1'Die nächste zwei Blocks finden die Spalten mit Isin in den unterschiedlichen Sheets    Do While Worksheets("Sheet2").Cells(2, intCounter2) <> ""        If Worksheets("Sheet2").Cells(2, intCounter2).Value = "MS Isin" Then            With Worksheets("Sheet2")                Set rngExchange2 = .Range(.Cells(2, intCounter2), .Cells(2, intCounter2))                control2 = intCounter2             End With         Exit Do                 End If                intCounter2 = intCounter2 + 1    Loop        Do While Worksheets("Sheet3").Cells(2, intCounter) <> ""        If Worksheets("Sheet3").Cells(2, intCounter).Value = "Isin" Then            With Worksheets("Sheet3")                Set rngExchange = .Range(.Cells(2, intCounter), .Cells(2, intCounter))                control = intCounter             End With        Exit Do        End If        intCounter = intCounter + 1    Loop    'Vergleicht die zwei Spalten.  Sucht die Isin von MS in ULDim arr     As VariantWith Worksheets("Sheet2")    arr = .Range(.Cells(3, control2), .Cells(.Rows.Count, control2).End(xlUp))End WithDim varr    As VariantWith Worksheets("Sheet3")    varr = .Range(.Cells(3, control), .Cells(.Rows.Count, control).End(xlUp))End WithDim x, y, match As BooleanFor Each x In arr    match = False    For Each y In varr        If x = y Then            match = True            Exit For        End If    Next y    If Not match Then        With Worksheets("Sheet1")            .Range("I" & .Range("I" & .Rows.Count).End(xlUp).Row + 1) = x        End With    End IfNextDebug.Print DateDiff("s", stNow, Now)Application.ScreenUpdating = TrueEnd SubSub SortExchangesEurope()    Dim intCounter As Integer    Dim rngExchange As Range    Dim x As Integer    Dim intIsin As Integer    Dim rngIsin As Range    Dim z As Integer    intCounter = 1    intIsin = 1    'Die nächste zwei Blocks finden die Spalten mit Exchange, um sie zu sortieren'Dann sucht die Spalte mit Isins, um sie zu kopieren        Do While Worksheets("Sheet3").Cells(2, intCounter) <> ""        If Worksheets("Sheet3").Cells(2, intCounter).Value = "Exchange" Then            With Worksheets("Sheet3")                Set rngExchange = .Range(.Cells(2, intCounter), .Cells(2, intCounter))                x = intCounter             End With        End If        intCounter = intCounter + 1    LoopDo While Worksheets("Sheet3").Cells(2, intIsin) <> ""        If Worksheets("Sheet3").Cells(2, intIsin).Value = "Isin" Then            With Worksheets("Sheet3")                Set rngIsin = .Range(.Cells(2, intIsin), .Cells(2, intIsin))                z = intIsin             End With        End If        intIsin = intIsin + 1    Loop' Dises Codeblock sortiert die Exchange-Spalte' Um einen neuen Börsencode einzugeben, muss das folgende Format genutzt werden: "CODE",    Worksheets("Sheet3").Range("$A$2:$UU$3000").AutoFilter Field:=x, Criteria1:=Array( _        "XBEL", "XBUD", "XBSE", "XQMH", "XWAR", _        "BMEX", "XLIS", "XLIT", "XBUL", "ASEX", _        "XDUB", "XBRU", "XLUX", "XSTO", "XSWX", _        "XHEL", "XMOS", "MISX", "XCSE", "XVTX", _        "IEPA", "XMIL", "XLIS", "BMEX", _        "XLJU", "ASEX", "XRIS", "XBRA", "xlOn", _        "XOSL", "XPAR", "XPRA", "XICE", "XIST", _        "XTAL", "XMIL", "XTRN", "XBRU", "XLDN", _        "XAMS", "XZAG", "XSWX", "XATH", "XMAD", "XOME", _        "XMRV", "XADE", "XVTX", "XTAH", "RTSX", "XLTO", _        "XDMI", "MFOX", "XMAD", "XMAT", "XTLX", "ICEU", _        "XMON", "XTUR", "XBRD", "XEDX", "XOME", "XLIF"), Operator:=xlFilterValues                With Worksheets("Sheet3")            .Range(.Cells(1, z), .Cells(.Rows.Count, z).End(xlUp)). _            Copy Worksheets("Sheet2").Range("X:X")        End With                Worksheets("Sheet2").Range("W2") = "MS Isin"        Worksheets("Sheet2").Range("X2") = "UL Isin"End SubSub CompareULtoMS()Application.ScreenUpdating = FalseDim stNow   As DatestNow = NowDim intCounter5 As IntegerDim intCounter6 As IntegerDim rngExchange4 As RangeDim rngExchange5 As RangeDim control3 As IntegerDim control4 As Integer    intCounter5 = 1    intCounter6 = 1'Die nächste zwei Blocks finden die Spalten mit Isin in den unterschiedlichen SheetsDo While Worksheets("Sheet2").Cells(2, intCounter5) <> ""        If Worksheets("Sheet2").Cells(2, intCounter5).Value = "MS Isin" Then            With Worksheets("Sheet2")                Set rngExchange4 = .Range(.Cells(2, intCounter5), .Cells(2, intCounter5))                control3 = intCounter5             End With         Exit Do                 End If                intCounter5 = intCounter5 + 1    Loop        Do While Worksheets("Sheet2").Cells(2, intCounter6) <> ""        If Worksheets("Sheet2").Cells(2, intCounter6).Value = "UL Isin" Then            With Worksheets("Sheet2")                Set rngExchange5 = .Range(.Cells(2, intCounter6), .Cells(2, intCounter6))                control4 = intCounter6             End With        Exit Do        End If        intCounter6 = intCounter6 + 1    Loop'Vergleicht die zwei Spalten. Sucht die Isin von UL in MSDim arr     As VariantWith Worksheets("Sheet2")    arr = .Range(.Cells(3, control3), .Cells(.Rows.Count, control3).End(xlUp))End WithDim varr    As VariantWith Worksheets("Sheet2")    varr = .Range(.Cells(3, control4), .Cells(.Rows.Count, control4).End(xlUp))End WithDim x, y, match As BooleanFor Each x In varr    match = False    For Each y In arr        If x = y Then            match = True            Exit For        End If    Next y    If Not match Then        With Worksheets("Sheet1")            .Range("J" & .Range("J" & .Rows.Count).End(xlUp).Row + 1) = x        End With    End IfNextDebug.Print DateDiff("s", stNow, Now)Application.ScreenUpdating = TrueEnd SubSub ULtoMS()SortExchangesEuropeCompareULtoMScolorLine2End SubSub MStoUL()CompareMStoULcolorLineEnd SubSub colorLine()Dim FindString() As VariantDim Rng As RangeDim i As LongDim FirstAddress As StringDim LastRow As LongWith Sheets("Sheet1")    LastRow = .Range("I" & .Rows.Count).End(xlUp).Row    If LastRow > 2 Then        FindString = .Range("I2:I" & LastRow).Value    Else        ReDim FindString(1 To 1, 1 To 1)        FindString(1, 1) = .Range("I2").Value    End IfEnd With 'Sheets("Sheet1")For i = LBound(FindString, 1) To UBound(FindString, 1)    If Trim(FindString(i, 1)) <> vbNullString Then        With Sheets("Sheet2").Range("A1:AZ500")            Set Rng = .Find(What:=FindString(i, 1), _                            After:=.Cells(1, 1), _                            LookIn:=xlValues, _                            LookAt:=xlWhole, _                            SearchOrder:=xlByRows, _                            SearchDirection:=xlNext, _                            MatchCase:=False)            If Not Rng Is Nothing Then                With Rng                    FirstAddress = .Address                    Do                        With .EntireRow.Interior                            .Pattern = xlSolid                            .Color = 255                        End With                        Set Rng = .FindNext(Rng)                    'Look until you find again the first result                    Loop While Not Rng Is Nothing And Rng.Address <> FirstAddress                End With 'Rng            End If        End With 'Sheets("Sheet2").Range("A1:AZ500")    Else    End IfNext iEnd SubSub colorLine2()Dim FindString2() As VariantDim Rng2 As RangeDim i2 As LongDim FirstAddress2 As StringDim LastRow2 As LongWith Sheets("Sheet1")    LastRow2 = .Range("J" & .Rows.Count).End(xlUp).Row    If LastRow2 > 2 Then        FindString2 = .Range("J2:J" & LastRow2).Value    Else        ReDim FindString2(1 To 1, 1 To 1)        FindString2(1, 1) = .Range("J2").Value    End IfEnd With 'Sheets("Sheet1")For i2 = LBound(FindString2, 1) To UBound(FindString2, 1)    If Trim(FindString2(i2, 1)) <> vbNullString Then        With Sheets("Sheet3").Range("A1:AZ500")            Set Rng2 = .Find(What:=FindString2(i2, 1), _                            After:=.Cells(1, 1), _                            LookIn:=xlValues, _                            LookAt:=xlWhole, _                            SearchOrder:=xlByRows, _                            SearchDirection:=xlNext, _                            MatchCase:=False)            If Not Rng2 Is Nothing Then                With Rng2                    FirstAddress2 = .Address                    Do                        With .EntireRow.Interior                            .Pattern = xlSolid                            .Color = 255                        End With                        Set Rng2 = .FindNext(Rng2)                    'Look until you find again the first result                    Loop While Not Rng2 Is Nothing And Rng2.Address <> FirstAddress2                End With            End If        End With 'Sheets("Sheet2").Range("A1:AZ500")    Else    End IfNext i2End Sub
+
+Option Explicit
+
+Sub SelctFile()
+Dim intChoice As Integer
+Dim strPath As String
+Dim strPath2 As String
+Dim intChoice2 As Integer
+Dim i As Integer
+
+'allow the user to select multiple files
+Application.FileDialog(msoFileDialogOpen).AllowMultiSelect = True
+'make the file dialog visible to the user
+intChoice = Application.FileDialog(msoFileDialogOpen).Show
+'determine what choice the user made
+If intChoice <> 0 Then
+    'get the file path selected by the user
+    For i = 1 To Application.FileDialog(msoFileDialogOpen _
+        ).SelectedItems.Count
+        strPath = Application.FileDialog(msoFileDialogOpen _
+        ).SelectedItems(i)
+        'print the file path to sheet 1
+        Cells(i + 1, 2) = strPath
+        
+    Next i
+End If
+
+Application.Wait (Now + TimeValue("0:00:01"))
+'allow the user to select multiple files
+Application.FileDialog(msoFileDialogOpen).AllowMultiSelect = True
+'make the file dialog visible to the user
+intChoice2 = Application.FileDialog(msoFileDialogOpen).Show
+'determine what choice the user made
+If intChoice2 <> 0 Then
+    'get the file path selected by the user
+    For i = 1 To Application.FileDialog(msoFileDialogOpen _
+        ).SelectedItems.Count
+        strPath2 = Application.FileDialog(msoFileDialogOpen _
+        ).SelectedItems(i)
+        'print the file path to sheet 1
+        Cells(i + 2, 2) = strPath2
+        
+    Next i
+End If
+
+
+End Sub
+
+Sub CopyReports()
+
+'variable definition
+Dim wkb1 As Workbook
+Dim sht1 As Worksheet
+Dim wkb2 As Workbook
+Dim sht2 As Worksheet
+Dim wkb3 As Workbook
+Dim sht3 As Worksheet
+Dim sht4 As Worksheet
+Dim MSReport As String
+Dim ULReport As String
+
+'the addresses of the reports are taken from the cells from the previous macro
+MSReport = Worksheets("Sheet1").Range("B2").Value
+ULReport = Worksheets("Sheet1").Range("B3").Value
+
+Application.ScreenUpdating = False
+'opens the chosen reports and copies the needed sheets, then closes the not needed excel workbooks
+Set wkb1 = ThisWorkbook
+Set wkb2 = Workbooks.Open(MSReport)
+Set sht1 = wkb1.Sheets("Sheet2")
+Set sht2 = wkb2.Sheets(1)
+Set wkb3 = Workbooks.Open(ULReport)
+Set sht3 = wkb3.Sheets(1)
+Set sht4 = wkb1.Sheets("Sheet3")
+
+sht2.Cells.Copy
+sht1.Range("A1").PasteSpecial xlPasteValues
+sht3.Cells.Copy
+sht4.Range("A1").PasteSpecial xlPasteValues
+Application.CutCopyMode = False
+wkb2.Close True
+wkb3.Close True
+
+Worksheets("Sheet1").Activate
+
+Application.ScreenUpdating = True
+End Sub
+Sub newLine()
+
+If Not WorksheetFunction.CountA(Worksheets("Sheet2").Range("A1:F1")) = 0 Then
+     Worksheets("Sheet2").Range("A1").EntireRow.Insert
+End If
+ 
+If Not WorksheetFunction.CountA(Worksheets("Sheet3").Range("A1:F1")) = 0 Then
+     Worksheets("Sheet3").Range("A1").EntireRow.Insert
+End If
+ 
+End Sub
+
+Sub ISIN()
+
+Dim intBB As Integer
+Dim rngBB As Range
+Dim controlBB As Integer
+
+intBB = 1
+
+Do While Worksheets("Sheet2").Cells(2, intBB) <> ""
+        If Worksheets("Sheet2").Cells(2, intBB).Value = "BbCode" Then
+            With Worksheets("Sheet2")
+                Set rngBB = .Range(.Cells(2, intBB), .Cells(2, intBB))
+                controlBB = intBB
+             End With
+         Exit Do
+         
+        End If
+          intBB = intBB + 1
+    Loop
+
+'pulls the ISIN from Bloomberg
+Worksheets("Sheet2").Range("W2") = "MS Isin"
+Worksheets("Sheet2").Range("W3:W2500").FormulaR1C1 = _
+"=IF(RC" & controlBB & "="""","""",BDP(RC" & controlBB & "&"" Equity"",""ID_ISIN""))"
+
+End Sub
+
+Sub CompareMStoUL()
+
+Application.ScreenUpdating = False
+
+Dim stNow   As Date
+stNow = Now
+
+Dim intCounter As Integer
+Dim intCounter2 As Integer
+Dim rngExchange As Range
+Dim rngExchange2 As Range
+Dim control As Integer
+Dim control2 As Integer
+
+    intCounter = 1
+    intCounter2 = 1
+'Die nächste zwei Blocks finden die Spalten mit Isin in den unterschiedlichen Sheets
+    Do While Worksheets("Sheet2").Cells(2, intCounter2) <> ""
+        If Worksheets("Sheet2").Cells(2, intCounter2).Value = "MS Isin" Then
+            With Worksheets("Sheet2")
+                Set rngExchange2 = .Range(.Cells(2, intCounter2), .Cells(2, intCounter2))
+                control2 = intCounter2
+             End With
+         Exit Do
+         
+        End If
+        
+        intCounter2 = intCounter2 + 1
+    Loop
+
+    
+    Do While Worksheets("Sheet3").Cells(2, intCounter) <> ""
+        If Worksheets("Sheet3").Cells(2, intCounter).Value = "Isin" Then
+            With Worksheets("Sheet3")
+                Set rngExchange = .Range(.Cells(2, intCounter), .Cells(2, intCounter))
+                control = intCounter
+             End With
+        Exit Do
+        End If
+
+        intCounter = intCounter + 1
+    Loop
+    
+'Vergleicht die zwei Spalten.  Sucht die Isin von MS in UL
+Dim arr     As Variant
+With Worksheets("Sheet2")
+    arr = .Range(.Cells(3, control2), .Cells(.Rows.Count, control2).End(xlUp))
+End With
+
+Dim varr    As Variant
+With Worksheets("Sheet3")
+    varr = .Range(.Cells(3, control), .Cells(.Rows.Count, control).End(xlUp))
+End With
+
+Dim x, y, match As Boolean
+For Each x In arr
+    match = False
+    For Each y In varr
+        If x = y Then
+            match = True
+            Exit For
+        End If
+    Next y
+    If Not match Then
+        With Worksheets("Sheet1")
+            .Range("I" & .Range("I" & .Rows.Count).End(xlUp).Row + 1) = x
+        End With
+    End If
+Next
+
+Debug.Print DateDiff("s", stNow, Now)
+Application.ScreenUpdating = True
+
+End Sub
+
+
+
+Sub SortExchangesEurope()
+
+    Dim intCounter As Integer
+    Dim rngExchange As Range
+    Dim x As Integer
+    Dim intIsin As Integer
+    Dim rngIsin As Range
+    Dim z As Integer
+    intCounter = 1
+    intIsin = 1
+    
+'Die nächste zwei Blocks finden die Spalten mit Exchange, um sie zu sortieren
+'Dann sucht die Spalte mit Isins, um sie zu kopieren
+    
+    Do While Worksheets("Sheet3").Cells(2, intCounter) <> ""
+        If Worksheets("Sheet3").Cells(2, intCounter).Value = "Exchange" Then
+            With Worksheets("Sheet3")
+                Set rngExchange = .Range(.Cells(2, intCounter), .Cells(2, intCounter))
+                x = intCounter
+             End With
+        End If
+
+        intCounter = intCounter + 1
+    Loop
+
+Do While Worksheets("Sheet3").Cells(2, intIsin) <> ""
+        If Worksheets("Sheet3").Cells(2, intIsin).Value = "Isin" Then
+            With Worksheets("Sheet3")
+                Set rngIsin = .Range(.Cells(2, intIsin), .Cells(2, intIsin))
+                z = intIsin
+             End With
+        End If
+
+        intIsin = intIsin + 1
+    Loop
+' Dises Codeblock sortiert die Exchange-Spalte
+' Um einen neuen Börsencode einzugeben, muss das folgende Format genutzt werden: "CODE",
+
+    Worksheets("Sheet3").Range("$A$2:$UU$3000").AutoFilter Field:=x, Criteria1:=Array( _
+        "XBEL", "XBUD", "XBSE", "XQMH", "XWAR", _
+        "BMEX", "XLIS", "XLIT", "XBUL", "ASEX", _
+        "XDUB", "XBRU", "XLUX", "XSTO", "XSWX", _
+        "XHEL", "XMOS", "MISX", "XCSE", "XVTX", _
+        "IEPA", "XMIL", "XLIS", "BMEX", _
+        "XLJU", "ASEX", "XRIS", "XBRA", "xlOn", _
+        "XOSL", "XPAR", "XPRA", "XICE", "XIST", _
+        "XTAL", "XMIL", "XTRN", "XBRU", "XLDN", _
+        "XAMS", "XZAG", "XSWX", "XATH", "XMAD", "XOME", _
+        "XMRV", "XADE", "XVTX", "XTAH", "RTSX", "XLTO", _
+        "XDMI", "MFOX", "XMAD", "XMAT", "XTLX", "ICEU", _
+        "XMON", "XTUR", "XBRD", "XEDX", "XOME", "XLIF"), Operator:=xlFilterValues
+        
+        With Worksheets("Sheet3")
+            .Range(.Cells(1, z), .Cells(.Rows.Count, z).End(xlUp)). _
+            Copy Worksheets("Sheet2").Range("X:X")
+        End With
+        
+        Worksheets("Sheet2").Range("W2") = "MS Isin"
+        Worksheets("Sheet2").Range("X2") = "UL Isin"
+
+End Sub
+
+Sub CompareULtoMS()
+
+Application.ScreenUpdating = False
+
+Dim stNow   As Date
+stNow = Now
+
+Dim intCounter5 As Integer
+Dim intCounter6 As Integer
+Dim rngExchange4 As Range
+Dim rngExchange5 As Range
+Dim control3 As Integer
+Dim control4 As Integer
+
+    intCounter5 = 1
+    intCounter6 = 1
+
+'Die nächste zwei Blocks finden die Spalten mit Isin in den unterschiedlichen Sheets
+
+Do While Worksheets("Sheet2").Cells(2, intCounter5) <> ""
+        If Worksheets("Sheet2").Cells(2, intCounter5).Value = "MS Isin" Then
+            With Worksheets("Sheet2")
+                Set rngExchange4 = .Range(.Cells(2, intCounter5), .Cells(2, intCounter5))
+                control3 = intCounter5
+             End With
+         Exit Do
+         
+        End If
+        
+        intCounter5 = intCounter5 + 1
+    Loop
+
+    
+    Do While Worksheets("Sheet2").Cells(2, intCounter6) <> ""
+        If Worksheets("Sheet2").Cells(2, intCounter6).Value = "UL Isin" Then
+            With Worksheets("Sheet2")
+                Set rngExchange5 = .Range(.Cells(2, intCounter6), .Cells(2, intCounter6))
+                control4 = intCounter6
+             End With
+        Exit Do
+        End If
+
+        intCounter6 = intCounter6 + 1
+    Loop
+
+'Vergleicht die zwei Spalten. Sucht die Isin von UL in MS
+
+Dim arr     As Variant
+With Worksheets("Sheet2")
+    arr = .Range(.Cells(3, control3), .Cells(.Rows.Count, control3).End(xlUp))
+End With
+
+Dim varr    As Variant
+With Worksheets("Sheet2")
+    varr = .Range(.Cells(3, control4), .Cells(.Rows.Count, control4).End(xlUp))
+End With
+
+Dim x, y, match As Boolean
+For Each x In varr
+    match = False
+    For Each y In arr
+        If x = y Then
+            match = True
+            Exit For
+        End If
+    Next y
+    If Not match Then
+        With Worksheets("Sheet1")
+            .Range("J" & .Range("J" & .Rows.Count).End(xlUp).Row + 1) = x
+        End With
+    End If
+Next
+
+Debug.Print DateDiff("s", stNow, Now)
+Application.ScreenUpdating = True
+
+End Sub
+
+Sub ULtoMS()
+
+SortExchangesEurope
+CompareULtoMS
+colorLine2
+
+End Sub
+Sub MStoUL()
+
+CompareMStoUL
+colorLine
+
+End Sub
+
+Sub colorLine()
+
+Dim FindString() As Variant
+Dim Rng As Range
+Dim i As Long
+Dim FirstAddress As String
+Dim LastRow As Long
+
+With Sheets("Sheet1")
+    LastRow = .Range("I" & .Rows.Count).End(xlUp).Row
+    If LastRow > 2 Then
+        FindString = .Range("I2:I" & LastRow).Value
+    Else
+        ReDim FindString(1 To 1, 1 To 1)
+        FindString(1, 1) = .Range("I2").Value
+    End If
+End With 'Sheets("Sheet1")
+
+For i = LBound(FindString, 1) To UBound(FindString, 1)
+    If Trim(FindString(i, 1)) <> vbNullString Then
+        With Sheets("Sheet2").Range("A1:AZ500")
+            Set Rng = .Find(What:=FindString(i, 1), _
+                            After:=.Cells(1, 1), _
+                            LookIn:=xlValues, _
+                            LookAt:=xlWhole, _
+                            SearchOrder:=xlByRows, _
+                            SearchDirection:=xlNext, _
+                            MatchCase:=False)
+
+
+            If Not Rng Is Nothing Then
+                With Rng
+                    FirstAddress = .Address
+                    Do
+                        With .EntireRow.Interior
+                            .Pattern = xlSolid
+                            .Color = 255
+                        End With
+                        Set Rng = .FindNext(Rng)
+                    'Look until you find again the first result
+                    Loop While Not Rng Is Nothing And Rng.Address <> FirstAddress
+                End With 'Rng
+            End If
+        End With 'Sheets("Sheet2").Range("A1:AZ500")
+    Else
+    End If
+Next i
+
+End Sub
+
+Sub colorLine2()
+
+Dim FindString2() As Variant
+Dim Rng2 As Range
+Dim i2 As Long
+Dim FirstAddress2 As String
+Dim LastRow2 As Long
+
+With Sheets("Sheet1")
+    LastRow2 = .Range("J" & .Rows.Count).End(xlUp).Row
+    If LastRow2 > 2 Then
+        FindString2 = .Range("J2:J" & LastRow2).Value
+    Else
+        ReDim FindString2(1 To 1, 1 To 1)
+        FindString2(1, 1) = .Range("J2").Value
+    End If
+End With 'Sheets("Sheet1")
+
+For i2 = LBound(FindString2, 1) To UBound(FindString2, 1)
+    If Trim(FindString2(i2, 1)) <> vbNullString Then
+        With Sheets("Sheet3").Range("A1:AZ500")
+            Set Rng2 = .Find(What:=FindString2(i2, 1), _
+                            After:=.Cells(1, 1), _
+                            LookIn:=xlValues, _
+                            LookAt:=xlWhole, _
+                            SearchOrder:=xlByRows, _
+                            SearchDirection:=xlNext, _
+                            MatchCase:=False)
+
+
+            If Not Rng2 Is Nothing Then
+                With Rng2
+                    FirstAddress2 = .Address
+                    Do
+                        With .EntireRow.Interior
+                            .Pattern = xlSolid
+                            .Color = 255
+                        End With
+                        Set Rng2 = .FindNext(Rng2)
+                    'Look until you find again the first result
+                    Loop While Not Rng2 Is Nothing And Rng2.Address <> FirstAddress2
+                End With
+            End If
+        End With 'Sheets("Sheet2").Range("A1:AZ500")
+    Else
+    End If
+Next i2
+
+End Sub
